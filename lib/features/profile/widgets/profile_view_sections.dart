@@ -1719,9 +1719,10 @@ class ProjectsSectionCard extends StatelessWidget {
   }
 }
 
-/// One project, full width: the cover image (with a Live / Open source tag in
-/// its top-right corner), then the title and a three-line summary, and the
-/// project's link in the bottom-right corner.
+/// One project, full width, as a bordered card: the cover image across the
+/// top, then the title with a Live / Open source pill on the right, a
+/// three-line summary, and the project's links as outlined pill buttons in
+/// the bottom-right corner.
 class ProjectViewTile extends StatelessWidget {
   const ProjectViewTile(
       {super.key, required this.project, required this.index, this.onTap});
@@ -1730,41 +1731,17 @@ class ProjectViewTile extends StatelessWidget {
   final int index;
   final VoidCallback? onTap;
 
-  /// Hosts whose links mean the project's source is public.
-  static const _sourceHosts = ['github.com', 'gitlab.com', 'bitbucket.org'];
+  static const _sourceKinds = {WorkLinkKind.github, WorkLinkKind.gitlab};
 
-  /// The project's primary link, if it has one.
-  String? get _link {
-    for (final l in [project.linkUrl, ...project.additionalLinks]) {
-      if (l != null && l.trim().isNotEmpty) return l.trim();
+  /// Every link the project carries, classified, without duplicates.
+  List<WorkLink> get _links {
+    final seen = <String>{};
+    final out = <WorkLink>[];
+    for (final raw in [project.linkUrl, ...project.additionalLinks]) {
+      final link = detectWorkLink(raw);
+      if (link != null && seen.add(link.href)) out.add(link);
     }
-    return null;
-  }
-
-  /// "Open source" when any link points at a code host, "Live" when it has
-  /// any other link, nothing when it has none.
-  String? get _status {
-    final links = [project.linkUrl, ...project.additionalLinks]
-        .whereType<String>()
-        .map((l) => l.toLowerCase());
-    if (links.any((l) => _sourceHosts.any(l.contains))) return 'Open source';
-    return _link == null ? null : 'Live';
-  }
-
-  void _open(BuildContext context, String url) {
-    final normalized = url.startsWith('http://') || url.startsWith('https://')
-        ? url
-        : 'https://$url';
-    final uri = Uri.tryParse(normalized);
-    if (uri == null || !uri.hasAuthority) {
-      showSnackbar(context, 'That link doesn\'t look valid.', isError: true);
-      return;
-    }
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => InAppBrowserScreen(url: normalized, title: project.title),
-      ),
-    );
+    return out;
   }
 
   @override
@@ -1774,8 +1751,16 @@ class ProjectViewTile extends StatelessWidget {
     final summary = (project.description ?? '').trim().isNotEmpty
         ? project.description!.trim()
         : project.subtitle;
-    final link = _link;
-    final status = _status;
+    final links = _links;
+    final source = links.where((l) => _sourceKinds.contains(l.kind)).toList();
+    final live = links.where((l) => !_sourceKinds.contains(l.kind)).toList();
+    final status = source.isNotEmpty
+        ? _ProjectStatus.openSource
+        : live.isNotEmpty
+            ? _ProjectStatus.live
+            : null;
+    final border = colors.onSurface.withValues(alpha: 0.12);
+    final radius = BorderRadius.circular(18);
     // A tonal panel with a muted glyph when the project has no cover.
     final placeholder = DecoratedBox(
       decoration: BoxDecoration(
@@ -1795,141 +1780,220 @@ class ProjectViewTile extends StatelessWidget {
     );
     return Semantics(
       button: onTap != null,
-      label: [project.title, summary].where((p) => p.trim().isNotEmpty).join(', '),
-      child: ProfileSurface(
-        tier: ProfileSurfaceTier.raised,
-        clip: true,
+      label:
+          [project.title, summary].where((p) => p.trim().isNotEmpty).join(', '),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (coverUrl != null && coverUrl.isNotEmpty)
-                    Image.network(
-                      coverUrl,
-                      fit: BoxFit.cover,
-                      filterQuality: FilterQuality.medium,
-                      errorBuilder: (_, __, ___) => placeholder,
-                      frameBuilder: (_, child, frame, sync) => sync
-                          ? child
-                          : AnimatedOpacity(
-                              opacity: frame == null ? 0 : 1,
-                              duration: const Duration(milliseconds: 180),
-                              child: child,
+        child: Container(
+          decoration: BoxDecoration(
+            color: colors.onSurface.withValues(alpha: 0.03),
+            borderRadius: radius,
+            border: Border.all(color: border),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              DecoratedBox(
+                position: DecorationPosition.foreground,
+                decoration: BoxDecoration(
+                  border: Border(bottom: BorderSide(color: border)),
+                ),
+                child: AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: coverUrl != null && coverUrl.isNotEmpty
+                      ? Image.network(
+                          coverUrl,
+                          fit: BoxFit.cover,
+                          filterQuality: FilterQuality.medium,
+                          errorBuilder: (_, __, ___) => placeholder,
+                          frameBuilder: (_, child, frame, sync) => sync
+                              ? child
+                              : AnimatedOpacity(
+                                  opacity: frame == null ? 0 : 1,
+                                  duration: const Duration(milliseconds: 180),
+                                  child: child,
+                                ),
+                        )
+                      : placeholder,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            project.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: colors.onSurface,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
                             ),
-                    )
-                  else
-                    placeholder,
-                  if (status != null)
-                    Positioned(
-                      top: 10,
-                      right: 10,
-                      child: _ProjectStatusTag(label: status),
-                    ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    project.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: colors.onSurface,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  if (summary.trim().isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      summary,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: colors.onSurfaceVariant,
-                        fontSize: 13,
-                        height: 1.45,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: link == null
-                  ? const SizedBox(height: 14)
-                  : Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 2, 6, 4),
-                      child: TextButton.icon(
-                        onPressed: () => _open(context, link),
-                        iconAlignment: IconAlignment.end,
-                        icon: const Icon(Icons.arrow_outward_rounded, size: 16),
-                        label: Text(
-                          'View project',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: colors.onSurface,
                           ),
                         ),
-                        style: TextButton.styleFrom(
-                          foregroundColor: colors.onSurface,
+                        if (status != null) ...[
+                          const SizedBox(width: 10),
+                          _ProjectStatusPill(status: status),
+                        ],
+                      ],
+                    ),
+                    if (summary.trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        summary,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: colors.onSurface.withValues(alpha: 0.78),
+                          fontSize: 14,
+                          height: 1.45,
                         ),
                       ),
-                    ),
-            ),
-          ],
+                    ],
+                    if (links.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.end,
+                          children: [
+                            for (final l in source)
+                              _ProjectLinkButton(
+                                glyph: workLinkGlyph(l.kind,
+                                    size: 15, color: colors.onSurface),
+                                label: l.label,
+                                onTap: () => openProfileLink(context, l),
+                              ),
+                            if (live.isNotEmpty)
+                              _ProjectLinkButton(
+                                glyph: Icon(Icons.arrow_outward_rounded,
+                                    size: 16, color: colors.onSurface),
+                                label: 'Live',
+                                onTap: () =>
+                                    openProfileLink(context, live.first),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// The small "Live" / "Open source" tag over a project's cover.
-class _ProjectStatusTag extends StatelessWidget {
-  const _ProjectStatusTag({required this.label});
+enum _ProjectStatus { live, openSource }
 
-  final String label;
+/// The tinted status pill beside a project's title: a green dot for Live, a
+/// violet wash for Open source.
+class _ProjectStatusPill extends StatelessWidget {
+  const _ProjectStatusPill({required this.status});
+
+  final _ProjectStatus status;
+
+  static const _green = Color(0xFF3DDC84);
+  static const _violet = Color(0xFFA78BFA);
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.tokensOrDefault;
-    final live = label == 'Live';
+    final live = status == _ProjectStatus.live;
+    final hue = live ? _green : _violet;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
       decoration: BoxDecoration(
-        color: tokens.mediaSurface.withValues(alpha: 0.72),
+        color: hue.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            live ? Icons.circle : Icons.code_rounded,
-            size: live ? 7 : 13,
-            color: tokens.onMediaSurface,
-          ),
-          const SizedBox(width: 5),
+          if (live) ...[
+            Container(
+              width: 7,
+              height: 7,
+              decoration:
+                  const BoxDecoration(color: _green, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+          ],
           Text(
-            label,
+            live ? 'Live' : 'Open source',
             style: TextStyle(
-              color: tokens.onMediaSurface,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.2,
+              color: hue,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// An outlined pill button for one of a project's links.
+class _ProjectLinkButton extends StatelessWidget {
+  const _ProjectLinkButton({
+    required this.glyph,
+    required this.label,
+    required this.onTap,
+  });
+
+  final Widget glyph;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colorScheme;
+    final radius = BorderRadius.circular(999);
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: radius,
+          child: Container(
+            height: 38,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              borderRadius: radius,
+              border:
+                  Border.all(color: colors.onSurface.withValues(alpha: 0.22)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                glyph,
+                const SizedBox(width: 7),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
