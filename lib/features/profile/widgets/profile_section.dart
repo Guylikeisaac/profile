@@ -10,8 +10,8 @@ import 'profile_motion.dart';
 import 'profile_surface.dart';
 
 /// Marks a subtree whose [ProfileSectionCard]s fold: each shows its header
-/// and its first item, and reveals the rest when the header is tapped (and
-/// hides them again on a second tap). Without this ancestor (Edit Profile)
+/// and its first items, and reveals the rest from a "Show N more" line under
+/// them (or a tap on the header). Without this ancestor (Edit Profile)
 /// sections are always open.
 class ProfileFoldingSections extends InheritedWidget {
   const ProfileFoldingSections({super.key, required super.child});
@@ -145,9 +145,6 @@ class ProfileSectionCard extends StatefulWidget {
   /// A section header's height.
   static const double headerHeight = 44;
 
-  /// How much of the second item shows from under a folded section's cover.
-  static const double coveredPeek = 46;
-
   @override
   State<ProfileSectionCard> createState() => _ProfileSectionCardState();
 }
@@ -195,8 +192,9 @@ class _ProfileSectionCardState extends State<ProfileSectionCard>
     super.dispose();
   }
 
-  /// The folded view: everything down to the fold mark. Opening grows the
-  /// box to full height while the hidden items fade and slide in beneath.
+  /// The folded view: everything down to the fold mark, then a plain
+  /// "Show N more" line. Opening grows the box to full height while the hidden
+  /// items fade in beneath.
   Widget _folded(BuildContext context, Widget child) {
     final markY = _fold.markY;
     // The box is always present — the fold mark measures itself against it —
@@ -206,70 +204,43 @@ class _ProfileSectionCardState extends State<ProfileSectionCard>
           key: _boxKey, factor: 1, collapsedHeight: 0, child: child);
     }
     final factor = _t.value;
-    final folded = 1 - factor;
-    const peek = ProfileSectionCard.coveredPeek;
-    final box = _CollapseBox(
-      key: _boxKey,
-      factor: factor,
-      // The first item, plus a strip of the next one showing from beneath
-      // the cover.
-      collapsedHeight: markY + peek,
-      child: child,
-    );
-    return Stack(
-      clipBehavior: Clip.none,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // What lies under the cover is dimmed — it is "behind" — and comes
-        // up to full strength as the cover slides away.
         ShaderMask(
           blendMode: BlendMode.dstIn,
           shaderCallback: (r) {
             final edge = (markY / r.height).clamp(0.0, 1.0);
-            final foot = ((markY + peek) / r.height).clamp(edge, 1.0);
-            final dimTop = 0.55 + 0.45 * factor;
-            final dimFoot = 0.08 + 0.92 * factor;
             return LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              stops: [0, edge, edge, foot, 1],
+              stops: [0, edge, edge, 1],
               colors: [
                 Colors.white,
                 Colors.white,
-                Colors.white.withValues(alpha: dimTop),
-                Colors.white.withValues(alpha: dimFoot),
+                Colors.white.withValues(alpha: factor),
                 Colors.white.withValues(alpha: factor),
               ],
             ).createShader(r);
           },
-          child: box,
-        ),
-        if (folded > 0)
-          Positioned(
-            left: -6,
-            right: -6,
-            // Slides down and away as the section opens.
-            top: markY + 14 + 40 * Curves.easeIn.transform(factor),
-            height: peek + 8,
-            child: IgnorePointer(
-              ignoring: _fold.open,
-              child: _fade(
-                folded,
-                _CoverSheet(
-                  hidden: _fold.hidden,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    _fold.toggle();
-                  },
-                ),
-              ),
-            ),
+          child: _CollapseBox(
+            key: _boxKey,
+            factor: factor,
+            collapsedHeight: markY,
+            child: child,
           ),
+        ),
+        _ShowMore(
+          open: _fold.open,
+          hidden: _fold.hidden,
+          onTap: () {
+            HapticFeedback.selectionClick();
+            _fold.toggle();
+          },
+        ),
       ],
     );
   }
-
-  static Widget _fade(double t, Widget child) =>
-      t >= 1 ? child : Opacity(opacity: t.clamp(0.0, 1.0), child: child);
 
   @override
   Widget build(BuildContext context) {
@@ -406,7 +377,8 @@ class _RenderCollapseBox extends RenderProxyBox {
 /// heading first, then the control, and the tile merely labels. Sections stay
 /// distinguishable by their glyph shape and their title.
 class SectionHeader extends StatelessWidget {
-  final IconData icon;
+  /// The leading glyph; null for a title-only heading.
+  final IconData? icon;
   final String title;
   final bool showAdd;
   final bool showEdit;
@@ -419,7 +391,7 @@ class SectionHeader extends StatelessWidget {
 
   const SectionHeader({
     super.key,
-    required this.icon,
+    this.icon,
     required this.title,
     this.showAdd = false,
     this.showEdit = false,
@@ -433,10 +405,12 @@ class SectionHeader extends StatelessWidget {
     final fold = _FoldScope.maybeOf(context);
     final row = Row(
       children: [
-        ExcludeSemantics(
-          child: Icon(icon, size: 16, color: colors.onSurfaceVariant),
-        ),
-        const SizedBox(width: 10),
+        if (icon != null) ...[
+          ExcludeSemantics(
+            child: Icon(icon, size: 16, color: colors.onSurfaceVariant),
+          ),
+          const SizedBox(width: 10),
+        ],
         Expanded(
           child: Semantics(
             header: true,
@@ -468,8 +442,6 @@ class SectionHeader extends StatelessWidget {
               onTap: onEdit,
             ),
           ),
-        if (fold != null && fold.expandable)
-          _FoldChevron(open: fold.open, hidden: fold.hidden),
       ],
     );
     final header = ConstrainedBox(
@@ -496,37 +468,49 @@ class SectionHeader extends StatelessWidget {
   }
 }
 
-/// The fold indicator: a bare chevron that turns over as the section opens.
-class _FoldChevron extends StatelessWidget {
-  const _FoldChevron({required this.open, required this.hidden});
+/// The fold control under a folded section: a quiet text line, "Show N more"
+/// while closed and "Show less" once open.
+class _ShowMore extends StatelessWidget {
+  const _ShowMore({
+    required this.open,
+    required this.hidden,
+    required this.onTap,
+  });
 
   final bool open;
-
-  /// How many items are folded away — shown as "+N" while closed.
   final int hidden;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final ink = context.colorScheme.onSurface;
-    final d = AppMotion.durationFor(context, AppMotion.sheet);
-    // Just the glyph — no disc around it. It turns over as the section opens.
-    final chevron = SizedBox.square(
-      dimension: 44,
-      child: Center(
-        child: AnimatedRotation(
-          turns: open ? 0.5 : 0,
-          duration: d,
-          curve: Curves.easeOutBack,
-          child: Icon(
-            Icons.keyboard_arrow_down_rounded,
-            size: 24,
-            color: ink.withValues(alpha: 0.85),
+    final ink = context.colorScheme.onSurfaceVariant;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Semantics(
+        button: true,
+        expanded: open,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Text(
+                open ? 'Show less' : 'Show $hidden more',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: ink,
+                  decoration: TextDecoration.underline,
+                  decorationColor: ink.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
           ),
         ),
       ),
     );
-    // The header keeps just the chevron; the count is read out on the cover.
-    return chevron;
   }
 }
 
@@ -555,111 +539,6 @@ class SectionHeaderAction extends StatelessWidget {
       icon: icon,
       semanticLabel: semanticLabel,
       onTap: onTap,
-    );
-  }
-}
-
-/// The raised panel that covers a folded section's remaining items: a glass
-/// lip lit along its top edge, a shadow cast up onto the item it covers, two
-/// thinner sheets stacked behind it, and a small chevron — no label.
-class _CoverSheet extends StatelessWidget {
-  const _CoverSheet({required this.hidden, required this.onTap});
-
-  final int hidden;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ink = context.colorScheme.onSurface;
-    final page = context.colorScheme.surface;
-    const r = Radius.circular(18);
-
-    Widget sheet(double inset, double top, double alpha) => Positioned(
-          left: inset,
-          right: inset,
-          top: top,
-          bottom: 0,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.vertical(top: r),
-              color: Color.lerp(page, ink, alpha),
-              border: Border(
-                top: BorderSide(color: ink.withValues(alpha: alpha * 2.4)),
-              ),
-            ),
-          ),
-        );
-
-    return Semantics(
-      button: true,
-      label: 'Show $hidden more',
-      excludeSemantics: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            // The sheets stacked behind, peeking above the cover's edge.
-            if (hidden > 1) sheet(34, -10, 0.035),
-            sheet(18, -5, 0.06),
-            // The cover itself.
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.vertical(top: r),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color.lerp(page, ink, 0.10)!,
-                      page,
-                    ],
-                    stops: const [0, 0.85],
-                  ),
-                  boxShadow: [
-                    // Cast up onto the item it covers: the lift.
-                    BoxShadow(
-                      color: page.withValues(alpha: 0.85),
-                      blurRadius: 22,
-                      spreadRadius: 2,
-                      offset: const Offset(0, -10),
-                    ),
-                  ],
-                ),
-                child: DecoratedBox(
-                  // The lit glass lip.
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.vertical(top: r),
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        ink.withValues(alpha: 0.10),
-                        ink.withValues(alpha: 0),
-                      ],
-                      stops: const [0, 0.35],
-                    ),
-                    border: Border(
-                      top: BorderSide(color: ink.withValues(alpha: 0.28)),
-                    ),
-                  ),
-                  // No words and no ring: a bare chevron is the whole cue — the
-                  // stacked edges already say "there is more here".
-                  child: Align(
-                    alignment: const Alignment(0, -0.35),
-                    child: Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      size: 22,
-                      color: ink.withValues(alpha: 0.85),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

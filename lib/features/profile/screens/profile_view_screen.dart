@@ -47,7 +47,6 @@ import '../widgets/profile_section.dart' show ProfileFoldingSections;
 import '../widgets/profile_sheet_kit.dart'
     show ProfileSheetAction, showProfileActionSheet;
 import '../widgets/references_section.dart';
-import '../widgets/profile_resume_section.dart';
 import '../widgets/profile_view_sections.dart';
 import '../../../core/extensions/context_extensions.dart';
 import '../../../core/theme/theme_context_ext.dart';
@@ -520,22 +519,19 @@ class _ProfileViewScreenState extends ConsumerState<_ProfileView> {
       if (widget.mode.isSelf)
         SocialLinksCard(
           links: data.socialLinks,
-          resumeChip: const ProfileResumeChip(),
           // Seed the editor from the real typed links, not the view chips.
           onEdit: () => openSocialLinksSheet(context, profile.links),
         )
       else
         ContactPillsRow(chips: data.socialLinks),
-      // Resume management (Self only): upload/view/replace/delete the actual
-      // resume FILE on record — placed between Social Links and Bio per the
-      // design frame.
-      // The resume is a chip in the links grid now (ProfileResumeChip), not
-      // a section of its own.
       ProfileBioCard(
         mode: widget.mode,
         bio: data.bio,
         // Bio has a real scalar write path — route to the Edit Profile form.
         onEdit: editable ? () => context.push(RouteNames.profileEdit) : null,
+      ),
+      ProfileIntroVideoCard(
+        mode: widget.mode,
         hasIntroVideo: canShowIntroVideo,
         introVideoUrl: canShowIntroVideo ? profile.introMediaUrl : null,
         introVideoPublic: profile.introMediaPublic,

@@ -415,7 +415,7 @@ class EducationCard extends StatelessWidget {
   }
 }
 
-/// A company's logo on a white rounded tile, looked up from its website's
+/// A company's logo, bare (no tile behind it), looked up from its website's
 /// domain; the company's initial on a dark tile when there is no website or
 /// the logo cannot be fetched.
 class CompanyLogo extends StatelessWidget {
@@ -467,11 +467,9 @@ class CompanyLogo extends StatelessWidget {
     return ExcludeSemantics(
       child: ClipRRect(
         borderRadius: radius,
-        child: Container(
+        child: SizedBox(
           width: size,
           height: size,
-          color: Colors.white,
-          padding: EdgeInsets.all(size * 0.14),
           child: Image.network(
             'https://www.google.com/s2/favicons?domain=$domain&sz=128',
             fit: BoxFit.contain,

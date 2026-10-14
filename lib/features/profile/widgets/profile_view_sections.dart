@@ -311,45 +311,66 @@ class ProfileChipFace extends StatelessWidget {
   }
 }
 
+/// The links as bare platform marks: one round glyph per link, no label. The
+/// platform is still named in the tooltip and the screen-reader announcement.
 class _LinkChips extends StatelessWidget {
-  const _LinkChips({required this.links, this.extra = const []});
+  const _LinkChips({required this.links});
 
   final List<WorkLink> links;
 
-  /// Chips appended after the links (the owner's Resume).
-  final List<Widget> extra;
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        for (final l in links)
+          SocialLinkIcon(link: l, onTap: () => openProfileLink(context, l)),
+      ],
+    );
+  }
+}
 
-  static const int _columns = 3;
+/// One social / portfolio link as just its logo, on a round glass disc.
+class SocialLinkIcon extends StatelessWidget {
+  const SocialLinkIcon({super.key, required this.link, this.onTap});
+
+  final WorkLink link;
+  final VoidCallback? onTap;
+
+  static const double size = 46;
 
   @override
   Widget build(BuildContext context) {
-    final cells = <Widget>[
-      for (final l in links)
-        SocialLinkChip(
-          link: l,
-          expand: true,
-          onTap: () => openProfileLink(context, l),
-        ),
-      ...extra,
-    ];
-    // A true grid: three equal columns, so every row's chips line up with
-    // the row above. The chips carry their own 4pt collar top and bottom.
-    return Column(
-      children: [
-        for (var r = 0; r < cells.length; r += _columns)
-          Row(
-            children: [
-              for (var c = 0; c < _columns; c++) ...[
-                if (c > 0) const SizedBox(width: 8),
-                Expanded(
-                  child: r + c < cells.length
-                      ? cells[r + c]
-                      : const SizedBox.shrink(),
-                ),
-              ],
-            ],
+    final t = ProfileSurfaceTokens.of(context);
+    final ink = context.colorScheme.onSurface;
+    final radius = BorderRadius.circular(size / 2);
+    final where = link.domain.isEmpty ? link.href : link.domain;
+    return Tooltip(
+      message: link.isRecognisedPlatform ? link.label : where,
+      child: Semantics(
+        button: true,
+        label: link.isRecognisedPlatform
+            ? '${link.label}. Opens $where'
+            : 'Website. Opens $where',
+        excludeSemantics: true,
+        child: GlassPressable(
+          onPressed: onTap,
+          borderRadius: radius,
+          pressedScale: 0.92,
+          builder: (context, s) => SizedBox.square(
+            dimension: size,
+            child: GlassSurface(
+              spec: GlassSpec.lerp(
+                  t.chip, t.chipPressed, math.max(s.press, s.hover * 0.5)),
+              borderRadius: radius,
+              child: Center(
+                child: workLinkGlyph(link.kind, size: 19, color: ink),
+              ),
+            ),
           ),
-      ],
+        ),
+      ),
     );
   }
 }
@@ -361,14 +382,10 @@ class SocialLinksCard extends StatelessWidget {
     super.key,
     required this.links,
     this.onEdit,
-    this.resumeChip,
   });
 
   final List<WorkLink> links;
   final VoidCallback? onEdit;
-
-  /// The owner's resume, as one more chip in the grid.
-  final Widget? resumeChip;
 
   @override
   Widget build(BuildContext context) {
@@ -384,7 +401,7 @@ class SocialLinksCard extends StatelessWidget {
             onEdit: onEdit,
           ),
           const SizedBox(height: 10),
-          if (links.isEmpty && resumeChip == null)
+          if (links.isEmpty)
             GestureDetector(
               onTap: onEdit,
               behavior: HitTestBehavior.opaque,
@@ -397,10 +414,7 @@ class SocialLinksCard extends StatelessWidget {
               ),
             )
           else
-            _LinkChips(
-              links: links,
-              extra: [if (resumeChip != null) resumeChip!],
-            ),
+            _LinkChips(links: links),
         ],
       ),
     );
@@ -434,50 +448,32 @@ class ContactPillsRow extends StatelessWidget {
 
 // ── Bio ──────────────────────────────────────────────────────────────────────
 
-/// Bio card. Self View shows an intro-video upload zone (or, once uploaded, the
-/// thumbnail + a "Make video public" toggle + Remove); Public/CV show the
-/// thumbnail only when an intro video exists.
+/// Bio card: the user's own words, nothing else. The intro video is its own
+/// section ([ProfileIntroVideoCard]).
 class ProfileBioCard extends StatelessWidget {
   const ProfileBioCard({
     super.key,
     required this.mode,
     required this.bio,
     this.onEdit,
-    this.hasIntroVideo = false,
-    this.introVideoUrl,
-    this.introVideoPublic = false,
-    this.introUploading = false,
-    this.onUploadIntro,
-    this.onToggleIntroPublic,
-    this.onRemoveIntro,
   });
 
   final ProfileViewMode mode;
   final String bio;
   final VoidCallback? onEdit;
 
-  /// Intro-media state + actions (Self only; wired by the screen).
-  final bool hasIntroVideo;
-  final String? introVideoUrl;
-  final bool introVideoPublic;
-  final bool introUploading;
-  final VoidCallback? onUploadIntro;
-  final ValueChanged<bool>? onToggleIntroPublic;
-  final VoidCallback? onRemoveIntro;
-
   @override
   Widget build(BuildContext context) {
     final colors = context.colorScheme;
     final tokens = context.tokensOrDefault;
-    final isSelf = mode.isSelf;
     return ProfileSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SectionHeader(
-            icon: Icons.play_circle_outline,
+            icon: Icons.person_outline,
             title: 'Bio',
-            showEdit: isSelf,
+            showEdit: mode.isSelf,
             onEdit: onEdit,
           ),
           const SizedBox(height: 10),
@@ -501,44 +497,87 @@ class ProfileBioCard extends StatelessWidget {
                 color: colors.onSurface,
               ),
             ),
-          const SizedBox(height: 14),
-          if (isSelf) ...[
-            if (introUploading) ...[
-              const _IntroVideoUploadZone(busy: true),
-            ] else if (hasIntroVideo && introVideoUrl != null) ...[
-              _BioVideoThumbnail(videoUrl: introVideoUrl!),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Make video public',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: colors.onSurface,
-                      ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Intro video section. Self View shows an upload zone (or, once uploaded, the
+/// thumbnail + a "Make video public" toggle + Remove); Public/CV show the
+/// thumbnail only when an intro video exists, and nothing otherwise.
+class ProfileIntroVideoCard extends StatelessWidget {
+  const ProfileIntroVideoCard({
+    super.key,
+    required this.mode,
+    this.hasIntroVideo = false,
+    this.introVideoUrl,
+    this.introVideoPublic = false,
+    this.introUploading = false,
+    this.onUploadIntro,
+    this.onToggleIntroPublic,
+    this.onRemoveIntro,
+  });
+
+  final ProfileViewMode mode;
+  final bool hasIntroVideo;
+  final String? introVideoUrl;
+  final bool introVideoPublic;
+  final bool introUploading;
+  final VoidCallback? onUploadIntro;
+  final ValueChanged<bool>? onToggleIntroPublic;
+  final VoidCallback? onRemoveIntro;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colorScheme;
+    final hasVideo = hasIntroVideo && introVideoUrl != null;
+    if (!mode.isSelf && !hasVideo) return const SizedBox.shrink();
+    return ProfileSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionHeader(
+            icon: Icons.play_circle_outline,
+            title: 'Intro Video',
+          ),
+          const SizedBox(height: 10),
+          if (!mode.isSelf)
+            _BioVideoThumbnail(videoUrl: introVideoUrl!)
+          else if (introUploading)
+            const _IntroVideoUploadZone(busy: true)
+          else if (hasVideo) ...[
+            _BioVideoThumbnail(videoUrl: introVideoUrl!),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Make video public',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface,
                     ),
                   ),
-                  Switch.adaptive(
-                    value: introVideoPublic,
-                    onChanged: onToggleIntroPublic,
-                  ),
-                ],
-              ),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: AppButton.text(
-                  label: 'Remove intro video',
-                  leading: Icons.delete_outline,
-                  destructive: true,
-                  onPressed: onRemoveIntro,
                 ),
+                Switch.adaptive(
+                  value: introVideoPublic,
+                  onChanged: onToggleIntroPublic,
+                ),
+              ],
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: AppButton.text(
+                label: 'Remove intro video',
+                leading: Icons.delete_outline,
+                destructive: true,
+                onPressed: onRemoveIntro,
               ),
-            ] else
-              _IntroVideoUploadZone(onUpload: onUploadIntro),
-          ] else if (hasIntroVideo && introVideoUrl != null)
-            _BioVideoThumbnail(videoUrl: introVideoUrl!),
+            ),
+          ] else
+            _IntroVideoUploadZone(onUpload: onUploadIntro),
         ],
       ),
     );
@@ -790,7 +829,7 @@ class _ActivitySectionState extends ConsumerState<ActivitySection> {
         ),
         const Padding(
           padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
-          child: SectionHeader(icon: Icons.bolt_outlined, title: 'Activity'),
+          child: SectionHeader(title: 'Activity'),
         ),
         const SizedBox(height: 4),
         ProfileActivityTabs(
@@ -1660,45 +1699,18 @@ class ProjectsSectionCard extends StatelessWidget {
                     'No projects added yet.',
                     style: TextStyle(fontSize: 13, color: tokens.textTertiary),
                   ),
-          // Manual 2-up rows instead of a nested GridView: a shrinkWrap
-          // GridView inside the page ListView mis-measures its height when it
-          // sits deep in the scroll, leaving a large empty band above the
-          // tiles. Plain Rows + AspectRatio size correctly with no phantom gap.
-          for (int i = 0; i < projects.length; i += 2)
+          // One project per row, stacked. Plain Column children rather than a
+          // nested list: a shrinkWrap list inside the page ListView
+          // mis-measures its height deep in the scroll.
+          for (int i = 0; i < projects.length; i++)
             Padding(
-              padding: EdgeInsets.only(top: i == 0 ? 0 : 10),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: AspectRatio(
-                      aspectRatio: 1.45,
-                      child: ProjectViewTile(
-                        project: projects[i],
-                        index: i,
-                        onTap: editable && onEditProject != null
-                            ? () => onEditProject!(projects[i])
-                            : null,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  if (i + 1 < projects.length)
-                    Expanded(
-                      child: AspectRatio(
-                        aspectRatio: 1.45,
-                        child: ProjectViewTile(
-                          project: projects[i + 1],
-                          index: i + 1,
-                          onTap: editable && onEditProject != null
-                              ? () => onEditProject!(projects[i + 1])
-                              : null,
-                        ),
-                      ),
-                    )
-                  else
-                    const Expanded(child: SizedBox()),
-                ],
+              padding: EdgeInsets.only(top: i == 0 ? 0 : 14),
+              child: ProjectViewTile(
+                project: projects[i],
+                index: i,
+                onTap: editable && onEditProject != null
+                    ? () => onEditProject!(projects[i])
+                    : null,
               ),
             ),
         ],
@@ -1707,8 +1719,9 @@ class ProjectsSectionCard extends StatelessWidget {
   }
 }
 
-/// Read-only project tile: cover image (or a neutral placeholder) + bottom
-/// dark gradient + light title/subtitle (no edit affordances).
+/// One project, full width: the cover image (with a Live / Open source tag in
+/// its top-right corner), then the title and a three-line summary, and the
+/// project's link in the bottom-right corner.
 class ProjectViewTile extends StatelessWidget {
   const ProjectViewTile(
       {super.key, required this.project, required this.index, this.onTap});
@@ -1717,16 +1730,53 @@ class ProjectViewTile extends StatelessWidget {
   final int index;
   final VoidCallback? onTap;
 
+  /// Hosts whose links mean the project's source is public.
+  static const _sourceHosts = ['github.com', 'gitlab.com', 'bitbucket.org'];
+
+  /// The project's primary link, if it has one.
+  String? get _link {
+    for (final l in [project.linkUrl, ...project.additionalLinks]) {
+      if (l != null && l.trim().isNotEmpty) return l.trim();
+    }
+    return null;
+  }
+
+  /// "Open source" when any link points at a code host, "Live" when it has
+  /// any other link, nothing when it has none.
+  String? get _status {
+    final links = [project.linkUrl, ...project.additionalLinks]
+        .whereType<String>()
+        .map((l) => l.toLowerCase());
+    if (links.any((l) => _sourceHosts.any(l.contains))) return 'Open source';
+    return _link == null ? null : 'Live';
+  }
+
+  void _open(BuildContext context, String url) {
+    final normalized = url.startsWith('http://') || url.startsWith('https://')
+        ? url
+        : 'https://$url';
+    final uri = Uri.tryParse(normalized);
+    if (uri == null || !uri.hasAuthority) {
+      showSnackbar(context, 'That link doesn\'t look valid.', isError: true);
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => InAppBrowserScreen(url: normalized, title: project.title),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colorScheme;
-    final tokens = context.tokensOrDefault;
     final coverUrl = project.coverUrl;
-    // A project with no cover used to get one of four vivid brand gradients
-    // by position — indigo/purple, sky/blue, pink/purple — which on the dark
-    // profile were the loudest things on the page and carried no information.
-    // The placeholder is now a tonal panel with a muted glyph, the same
-    // convention the website uses for a missing cover.
+    final summary = (project.description ?? '').trim().isNotEmpty
+        ? project.description!.trim()
+        : project.subtitle;
+    final link = _link;
+    final status = _status;
+    // A tonal panel with a muted glyph when the project has no cover.
     final placeholder = DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -1743,88 +1793,143 @@ class ProjectViewTile extends StatelessWidget {
         ),
       ),
     );
-    // The raised pane, clipped, so the media keeps the nested radius and the
-    // tile dips like every other pressable pane when it opens the editor.
     return Semantics(
       button: onTap != null,
-      label: [project.title, project.subtitle]
-          .where((p) => p.trim().isNotEmpty)
-          .join(', '),
-      excludeSemantics: true,
+      label: [project.title, summary].where((p) => p.trim().isNotEmpty).join(', '),
       child: ProfileSurface(
         tier: ProfileSurfaceTier.raised,
         clip: true,
         onTap: onTap,
-        child: Stack(
-          fit: StackFit.expand,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (coverUrl != null && coverUrl.isNotEmpty)
-              Image.network(
-                coverUrl,
-                fit: BoxFit.cover,
-                filterQuality: FilterQuality.medium,
-                errorBuilder: (_, __, ___) => placeholder,
-                frameBuilder: (_, child, frame, sync) => sync
-                    ? child
-                    : AnimatedOpacity(
-                        opacity: frame == null ? 0 : 1,
-                        duration: const Duration(milliseconds: 180),
-                        child: child,
-                      ),
-              )
-            else
-              placeholder,
-            // The caption scrim over the media, fixed dark in both themes so
-            // the light caption always has something to sit on.
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.center,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    tokens.mediaSurface.withValues(alpha: 0.8),
-                  ],
-                ),
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (coverUrl != null && coverUrl.isNotEmpty)
+                    Image.network(
+                      coverUrl,
+                      fit: BoxFit.cover,
+                      filterQuality: FilterQuality.medium,
+                      errorBuilder: (_, __, ___) => placeholder,
+                      frameBuilder: (_, child, frame, sync) => sync
+                          ? child
+                          : AnimatedOpacity(
+                              opacity: frame == null ? 0 : 1,
+                              duration: const Duration(milliseconds: 180),
+                              child: child,
+                            ),
+                    )
+                  else
+                    placeholder,
+                  if (status != null)
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: _ProjectStatusTag(label: status),
+                    ),
+                ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(11),
-              child: Align(
-                alignment: Alignment.bottomLeft,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Ink on media, not `surface`/`onPrimary`: those resolve to
-                    // near-black in dark, which made the caption vanish into
-                    // its own scrim.
-                    Text(
-                      project.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: tokens.onMediaSurface,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    project.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.onSurface,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
                     ),
-                    const SizedBox(height: 2),
+                  ),
+                  if (summary.trim().isNotEmpty) ...[
+                    const SizedBox(height: 6),
                     Text(
-                      project.subtitle,
-                      maxLines: 1,
+                      summary,
+                      maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: tokens.onMediaSurface.withValues(alpha: 0.85),
-                        fontSize: 11.5,
+                        color: colors.onSurfaceVariant,
+                        fontSize: 13,
+                        height: 1.45,
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: link == null
+                  ? const SizedBox(height: 14)
+                  : Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 2, 6, 4),
+                      child: TextButton.icon(
+                        onPressed: () => _open(context, link),
+                        iconAlignment: IconAlignment.end,
+                        icon: const Icon(Icons.arrow_outward_rounded, size: 16),
+                        label: Text(
+                          'View project',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: colors.onSurface,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          foregroundColor: colors.onSurface,
+                        ),
+                      ),
+                    ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The small "Live" / "Open source" tag over a project's cover.
+class _ProjectStatusTag extends StatelessWidget {
+  const _ProjectStatusTag({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokensOrDefault;
+    final live = label == 'Live';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: tokens.mediaSurface.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            live ? Icons.circle : Icons.code_rounded,
+            size: live ? 7 : 13,
+            color: tokens.onMediaSurface,
+          ),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: tokens.onMediaSurface,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
       ),
     );
   }
