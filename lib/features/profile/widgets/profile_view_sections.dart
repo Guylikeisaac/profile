@@ -1866,16 +1866,25 @@ class ProjectViewTile extends StatelessWidget {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
+                          // One line, always: a narrow card scales the
+                          // tiles down rather than wrapping them.
                           Expanded(
-                            child: Wrap(
-                              spacing: 6,
-                              runSpacing: 6,
-                              children: [
-                                for (final t in project.techStack.take(4))
-                                  _TechTile(name: t),
-                              ],
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  for (final (i, t)
+                                      in project.techStack.take(4).indexed) ...[
+                                    if (i > 0) const SizedBox(width: 5),
+                                    _TechTile(name: t),
+                                  ],
+                                ],
+                              ),
                             ),
                           ),
+                          const SizedBox(width: 8),
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
@@ -2069,20 +2078,20 @@ class _TechTile extends StatelessWidget {
         label: name,
         excludeSemantics: true,
         child: Container(
-          width: 34,
-          height: 34,
+          width: 24,
+          height: 24,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: hue.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(9),
+            borderRadius: BorderRadius.circular(7),
             border: Border.all(color: hue.withValues(alpha: 0.35)),
           ),
           child: mark != null
-              ? FaIcon(mark.$1, size: 16, color: hue)
+              ? FaIcon(mark.$1, size: 12, color: hue)
               : Text(
                   initials,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 9,
                     fontWeight: FontWeight.w800,
                     color: hue,
                   ),
