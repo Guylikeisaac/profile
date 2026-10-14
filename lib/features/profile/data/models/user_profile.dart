@@ -162,6 +162,14 @@ class ProjectEntry {
   final String? experienceId;
   final int? sortOrder;
 
+  /// Technologies the project is built with ("React", "Docker"…), shown as
+  /// icon tiles on the card. Not yet part of the backend payload.
+  final List<String> techStack;
+
+  /// A write-up of the project, opened from the card's "Case study" button.
+  /// Not yet part of the backend payload.
+  final String? caseStudyUrl;
+
   const ProjectEntry({
     required this.title,
     required this.subtitle,
@@ -176,6 +184,8 @@ class ProjectEntry {
     this.endDate,
     this.experienceId,
     this.sortOrder,
+    this.techStack = const [],
+    this.caseStudyUrl,
   });
 }
 

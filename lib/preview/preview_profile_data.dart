@@ -107,7 +107,12 @@ abstract final class PreviewData {
         'Motion',
         'Design Systems',
       ],
-      'RESEARCH': ['Usability Testing', 'Interviews', 'A/B Testing', 'Analytics'],
+      'RESEARCH': [
+        'Usability Testing',
+        'Interviews',
+        'A/B Testing',
+        'Analytics'
+      ],
       'BUILD': ['HTML/CSS', 'React', 'Flutter', 'Lottie'],
       'LEADERSHIP': ['Mentoring', 'Workshops', 'Stakeholder Mgmt'],
     },
@@ -120,22 +125,30 @@ abstract final class PreviewData {
       ProjectEntry(
         title: 'Razorpay Checkout 2.0',
         subtitle: 'Payments · Mobile & Web',
-        description: 'A faster, calmer checkout for 8M merchants. Rebuilt the payment flow around saved methods and one-tap UPI, cut drop-off at the card step by 18%, and shipped it across web, Android and iOS from one shared component set.',
+        description:
+            'A faster, calmer checkout for 8M merchants. Rebuilt the payment flow around saved methods and one-tap UPI, cut drop-off at the card step by 18%, and shipped it across web, Android and iOS from one shared component set.',
         linkUrl: 'https://razorpay.com/checkout',
+        caseStudyUrl: 'https://razorpay.com/blog',
+        techStack: const ['React', 'Node.js', 'Figma', 'AWS'],
         coverUrl: _photo('1460925895917-afdab827c52f', w: 800),
       ),
       ProjectEntry(
         title: 'Blade Design System',
         subtitle: 'Design System',
-        description: '300+ components, tokens and motion guidelines, open to the community. Built the theming layer, the motion spec and the docs site that every product team at Razorpay now ships with.',
+        description:
+            '300+ components, tokens and motion guidelines, open to the community. Built the theming layer, the motion spec and the docs site that every product team at Razorpay now ships with.',
         linkUrl: 'https://github.com/razorpay/blade',
+        caseStudyUrl: 'https://blade.razorpay.com',
+        techStack: const ['React', 'TypeScript', 'Figma', 'Storybook'],
         coverUrl: _photo('1551288049-bebda4e38f71', w: 800),
       ),
       ProjectEntry(
         title: 'Instamart Onboarding',
         subtitle: 'Mobile App',
-        description: 'From first open to first order in 40 seconds. Replaced a five-screen signup with location-first browsing and deferred login.',
+        description:
+            'From first open to first order in 40 seconds. Replaced a five-screen signup with location-first browsing and deferred login.',
         linkUrl: 'https://www.swiggy.com/instamart',
+        techStack: const ['Flutter', 'Android', 'Apple', 'Python'],
         coverUrl: _photo('1498050108023-c5249f4df085', w: 800),
       ),
     ],
