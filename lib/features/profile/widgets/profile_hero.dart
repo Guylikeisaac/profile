@@ -384,7 +384,7 @@ class ProfileHero extends StatelessWidget {
                 openToWork: data.openToWork,
               ),
               if (stats.isNotEmpty) ...[
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
                 _StatsRow(
                   stats: stats,
                   onConnectionsTap: mode.isCv ? null : onConnectionsTap,
@@ -1612,10 +1612,9 @@ class LiquidGlassCircle extends StatelessWidget {
 
 // ── Stats ────────────────────────────────────────────────────────────────────
 
-/// The hero's numbers as a row of separate tiles, each with its own colour:
-/// a glyph in a tinted disc, the value counting up, the caption in full, and
-/// a glow of the tile's hue rising from one corner. A tappable stat (the
-/// owner's Connections) gets an arrow and lights up while pressed.
+/// The hero's numbers as one plain line: each value in bold with its caption
+/// beside it in secondary ink. A tappable stat (the owner's Connections) gets
+/// a small arrow and dims while pressed.
 class _StatsRow extends StatelessWidget {
   const _StatsRow({required this.stats, this.onConnectionsTap});
 
@@ -1625,170 +1624,87 @@ class _StatsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (stats.isEmpty) return const SizedBox.shrink();
-    final compact = stats.length >= 4;
-    final children = <Widget>[];
-    for (var i = 0; i < stats.length; i++) {
-      final stat = stats[i];
-      final tappable =
-          onConnectionsTap != null && stat.caption == 'Connections';
-      if (i > 0) children.add(SizedBox(width: compact ? 6 : 8));
-      children.add(Expanded(
-        child: _StatTile(
-          stat: stat,
-          compact: compact,
-          onTap: tappable ? onConnectionsTap : null,
-        ),
-      ));
-    }
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: children,
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Wrap(
+        spacing: 18,
+        runSpacing: 6,
+        children: [
+          for (final stat in stats)
+            _InlineStat(
+              stat: stat,
+              onTap: onConnectionsTap != null && stat.caption == 'Connections'
+                  ? onConnectionsTap
+                  : null,
+            ),
+        ],
       ),
     );
   }
 }
 
-/// How a stat is dressed: its glyph and hue, from its caption.
-({IconData icon, Color hue, String label}) _statLook(String caption) {
-  switch (caption.toLowerCase()) {
-    case 'yrs exp':
-    case 'years exp':
-      return (
-        icon: Icons.workspace_premium_outlined,
-        hue: const Color(0xFFFBBF24),
-        label: 'Years exp.',
-      );
-    case 'connections':
-    case 'network':
-      return (
-        icon: Icons.people_alt_outlined,
-        hue: const Color(0xFF60A5FA),
-        label: caption,
-      );
-    case 'profile views':
-      return (
-        icon: Icons.visibility_outlined,
-        hue: const Color(0xFFF472B6),
-        label: 'Profile views',
-      );
-    case 'projects':
-      return (
-        icon: Icons.rocket_launch_outlined,
-        hue: const Color(0xFFA78BFA),
-        label: caption,
-      );
-    case 'skills':
-      return (
-        icon: Icons.bolt_outlined,
-        hue: const Color(0xFF34D399),
-        label: caption,
-      );
-    default:
-      return (
-        icon: Icons.insights_outlined,
-        hue: const Color(0xFF2DD4BF),
-        label: caption,
-      );
-  }
-}
-
-class _StatTile extends StatelessWidget {
-  const _StatTile({required this.stat, required this.compact, this.onTap});
+class _InlineStat extends StatelessWidget {
+  const _InlineStat({required this.stat, this.onTap});
 
   final ProfileStat stat;
-  final bool compact;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colorScheme;
-    final look = _statLook(stat.caption);
-    final hue = look.hue;
-    final radius = BorderRadius.circular(16);
-
-    Widget face(double lit) => Container(
-          decoration: BoxDecoration(
-            borderRadius: radius,
-            border: Border.all(color: hue.withValues(alpha: 0.22 + 0.2 * lit)),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                hue.withValues(alpha: 0.16 + 0.08 * lit),
-                hue.withValues(alpha: 0.02),
-              ],
-            ),
+    final row = Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        ProfileCountUp(
+          value: stat.value,
+          style: TextStyle(
+            color: colors.onSurface,
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
+            fontFeatures: AppTypography.tabularFigures,
           ),
-          padding: EdgeInsets.fromLTRB(compact ? 9 : 12, compact ? 10 : 12,
-              compact ? 9 : 12, compact ? 10 : 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: compact ? 24 : 28,
-                    height: compact ? 24 : 28,
-                    decoration: BoxDecoration(
-                      color: hue.withValues(alpha: 0.18),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(look.icon, size: compact ? 13 : 15, color: hue),
-                  ),
-                  const Spacer(),
-                  if (onTap != null)
-                    Icon(Icons.arrow_outward_rounded,
-                        size: 14, color: hue.withValues(alpha: 0.9)),
-                ],
-              ),
-              SizedBox(height: compact ? 8 : 10),
-              ProfileCountUp(
-                value: stat.value,
-                style: TextStyle(
-                  color: colors.onSurface,
-                  fontSize: compact ? 18 : 22,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.8,
-                  height: 1.05,
-                  fontFeatures: AppTypography.tabularFigures,
-                ),
-              ),
-              const SizedBox(height: 3),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  look.label,
-                  maxLines: 1,
-                  style: TextStyle(
-                    color: colors.onSurfaceVariant,
-                    fontSize: compact ? 10.5 : 11.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+        ),
+        const SizedBox(width: 5),
+        Text(
+          stat.caption.toLowerCase(),
+          style: TextStyle(
+            color: colors.onSurfaceVariant,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
           ),
-        );
-
+        ),
+        if (onTap != null) ...[
+          const SizedBox(width: 3),
+          Icon(Icons.arrow_outward_rounded,
+              size: 13, color: colors.onSurfaceVariant),
+        ],
+      ],
+    );
     if (onTap == null) {
       return Semantics(
-        label: '${stat.value} ${look.label}',
+        label: '${stat.value} ${stat.caption}',
         excludeSemantics: true,
-        child: face(0),
+        child: row,
       );
     }
     return Semantics(
       button: true,
-      label: '${stat.value} ${look.label}',
+      label: '${stat.value} ${stat.caption}',
       excludeSemantics: true,
       child: GlassPressable(
         onPressed: onTap,
-        borderRadius: radius,
+        borderRadius: BorderRadius.circular(8),
         pressedScale: 0.97,
-        builder: (context, s) => face(math.max(s.press, s.hover * 0.6)),
+        builder: (context, s) => Opacity(
+          opacity: 1 - 0.35 * math.max(s.press, s.hover * 0.5),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 32),
+            child: Align(widthFactor: 1, child: row),
+          ),
+        ),
       ),
     );
   }

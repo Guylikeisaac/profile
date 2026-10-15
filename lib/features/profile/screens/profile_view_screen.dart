@@ -447,25 +447,13 @@ class _ProfileViewScreenState extends ConsumerState<_ProfileView> {
     }
   }
 
-  /// Builds the hero stat row from real data only — Yrs Exp (derived from
-  /// experiences), Connections (count API), and Profile Views (self only, from
-  /// the session's impression count). Stats with no real value are omitted; the
-  /// stats card hides itself entirely when the list is empty (no fake numbers).
-  List<ProfileStat> _realStats(UserProfile profile, int? connectionCount) {
-    final stats = <ProfileStat>[];
-    final yrs = _yearsOfExperience(profile.experiences);
-    if (yrs != null) stats.add(ProfileStat(yrs, 'Yrs Exp'));
-    if (connectionCount != null) {
-      stats.add(ProfileStat(compactCount(connectionCount), 'Connections'));
-    }
-    // Profile Views is a personal, self-only metric (impressionCount is only on
-    // the session user, not on other users' public payloads).
-    if (!_isOtherUser && profile.impressionCount > 0) {
-      stats.add(
-          ProfileStat(compactCount(profile.impressionCount), 'Profile Views'));
-    }
-    return stats;
-  }
+  /// The hero's one number on the self and public views: Connections, when
+  /// there is a real count. Years of experience and profile views are left
+  /// off to keep the hero minimal (the CV export keeps its fuller set).
+  List<ProfileStat> _realStats(UserProfile profile, int? connectionCount) => [
+        if (connectionCount != null)
+          ProfileStat(compactCount(connectionCount), 'Connections'),
+      ];
 
   /// Whole years since the earliest experience start date, as "N+" (or "<1").
   /// Null when the user has no dated experience → the stat is hidden.
