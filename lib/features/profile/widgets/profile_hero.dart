@@ -1612,8 +1612,8 @@ class LiquidGlassCircle extends StatelessWidget {
 
 // ── Stats ────────────────────────────────────────────────────────────────────
 
-/// The hero's numbers as one plain line: each value in bold with its caption
-/// beside it in secondary ink. A tappable stat (the owner's Connections) gets
+/// The hero's numbers as one plain line: each value in regular weight with
+/// its caption beside it in secondary ink. A tappable stat (the owner's Connections) gets
 /// a small arrow and dims while pressed.
 class _StatsRow extends StatelessWidget {
   const _StatsRow({required this.stats, this.onConnectionsTap});
@@ -1661,9 +1661,8 @@ class _InlineStat extends StatelessWidget {
           value: stat.value,
           style: TextStyle(
             color: colors.onSurface,
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.3,
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
             fontFeatures: AppTypography.tabularFigures,
           ),
         ),
@@ -1673,7 +1672,7 @@ class _InlineStat extends StatelessWidget {
           style: TextStyle(
             color: colors.onSurfaceVariant,
             fontSize: 14,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w400,
           ),
         ),
         if (onTap != null) ...[

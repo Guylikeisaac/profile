@@ -31,9 +31,8 @@ class SkillCategoryBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colorScheme;
     final titleInk = accent ?? colors.onSurfaceVariant;
-    // Each skill carries its own colour (its brand hue, or a stable one for
-    // a practice) — see [skillMarkFor]. A saved category colour lives on the
-    // heading only.
+    // Skills are monochrome chips (logo + name, or name alone) — see
+    // [SkillColorChip]. A saved category colour lives on the heading only.
     return Padding(
       padding: const EdgeInsets.only(top: 14),
       child: Column(

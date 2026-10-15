@@ -13,14 +13,25 @@ const Map<String, SkillMark> _marks = {
   'node.js': (hue: Color(0xFF8CC84B), icon: FontAwesomeIcons.nodeJs),
   'node': (hue: Color(0xFF8CC84B), icon: FontAwesomeIcons.nodeJs),
   'javascript': (hue: Color(0xFFF7DF1E), icon: FontAwesomeIcons.js),
-  'typescript': (hue: Color(0xFF3178C6), icon: null),
+  'js': (hue: Color(0xFFF7DF1E), icon: FontAwesomeIcons.js),
+  'typescript': (hue: Color(0xFF3178C6), icon: FontAwesomeIcons.typescript),
+  'react native': (hue: Color(0xFF61DAFB), icon: FontAwesomeIcons.react),
+  'dart': (hue: Color(0xFF0175C2), icon: FontAwesomeIcons.dartLang),
+  'swift': (hue: Color(0xFFF05138), icon: FontAwesomeIcons.swift),
+  'php': (hue: Color(0xFF777BB4), icon: FontAwesomeIcons.php),
+  'laravel': (hue: Color(0xFFFF2D20), icon: FontAwesomeIcons.laravel),
+  'r': (hue: Color(0xFF276DC3), icon: FontAwesomeIcons.rProject),
+  'golang': (hue: Color(0xFF00ADD8), icon: FontAwesomeIcons.golang),
+  'vue.js': (hue: Color(0xFF42B883), icon: FontAwesomeIcons.vuejs),
+  'bootstrap': (hue: Color(0xFF7952B3), icon: FontAwesomeIcons.bootstrap),
+  'sass': (hue: Color(0xFFCC6699), icon: FontAwesomeIcons.sass),
   'python': (hue: Color(0xFF4B8BBE), icon: FontAwesomeIcons.python),
   'go': (hue: Color(0xFF00ADD8), icon: FontAwesomeIcons.golang),
   'java': (hue: Color(0xFFED8B00), icon: FontAwesomeIcons.java),
   'rust': (hue: Color(0xFFDEA584), icon: FontAwesomeIcons.rust),
   'angular': (hue: Color(0xFFDD0031), icon: FontAwesomeIcons.angular),
   'vue': (hue: Color(0xFF42B883), icon: FontAwesomeIcons.vuejs),
-  'flutter': (hue: Color(0xFF54C5F8), icon: null),
+  'flutter': (hue: Color(0xFF54C5F8), icon: FontAwesomeIcons.flutter),
   'html': (hue: Color(0xFFE34F26), icon: FontAwesomeIcons.html5),
   'html/css': (hue: Color(0xFFE34F26), icon: FontAwesomeIcons.html5),
   'css': (hue: Color(0xFF2965F1), icon: FontAwesomeIcons.css3Alt),
@@ -28,6 +39,27 @@ const Map<String, SkillMark> _marks = {
   'docker': (hue: Color(0xFF2496ED), icon: FontAwesomeIcons.docker),
   'aws': (hue: Color(0xFFFF9900), icon: FontAwesomeIcons.aws),
   'git': (hue: Color(0xFFF05032), icon: FontAwesomeIcons.gitAlt),
+  'github': (hue: Color(0xFFE6E6E6), icon: FontAwesomeIcons.github),
+  'gitlab': (hue: Color(0xFFFC6D26), icon: FontAwesomeIcons.gitlab),
+  'npm': (hue: Color(0xFFCB3837), icon: FontAwesomeIcons.npm),
+  'kubernetes': (hue: Color(0xFF326CE5), icon: FontAwesomeIcons.kubernetes),
+  'jenkins': (hue: Color(0xFFD24939), icon: FontAwesomeIcons.jenkins),
+  'postgresql': (hue: Color(0xFF4169E1), icon: FontAwesomeIcons.postgresql),
+  'postgres': (hue: Color(0xFF4169E1), icon: FontAwesomeIcons.postgresql),
+  'linux': (hue: Color(0xFFFCC624), icon: FontAwesomeIcons.linux),
+  'ubuntu': (hue: Color(0xFFE95420), icon: FontAwesomeIcons.ubuntu),
+  'windows': (hue: Color(0xFF0078D4), icon: FontAwesomeIcons.windows),
+  'unity': (hue: Color(0xFFE6E6E6), icon: FontAwesomeIcons.unity),
+  'wordpress': (hue: Color(0xFF21759B), icon: FontAwesomeIcons.wordpress),
+  'shopify': (hue: Color(0xFF7AB55C), icon: FontAwesomeIcons.shopify),
+  'stripe': (hue: Color(0xFF635BFF), icon: FontAwesomeIcons.stripe),
+  'salesforce': (hue: Color(0xFF00A1E0), icon: FontAwesomeIcons.salesforce),
+  'jira': (hue: Color(0xFF2684FF), icon: FontAwesomeIcons.jira),
+  'confluence': (hue: Color(0xFF2684FF), icon: FontAwesomeIcons.confluence),
+  'slack': (hue: Color(0xFFE01E5A), icon: FontAwesomeIcons.slack),
+  'trello': (hue: Color(0xFF0079BF), icon: FontAwesomeIcons.trello),
+  'notion': (hue: Color(0xFFE6E6E6), icon: FontAwesomeIcons.notion),
+  'markdown': (hue: Color(0xFFE6E6E6), icon: FontAwesomeIcons.markdown),
   'android': (hue: Color(0xFF3DDC84), icon: FontAwesomeIcons.android),
   'apple': (hue: Color(0xFFE6E6E6), icon: FontAwesomeIcons.apple),
   'ios': (hue: Color(0xFFE6E6E6), icon: FontAwesomeIcons.apple),
@@ -38,6 +70,9 @@ const Map<String, SkillMark> _marks = {
   'framer': (hue: Color(0xFF0099FF), icon: null),
   'sketch': (hue: Color(0xFFF7B500), icon: FontAwesomeIcons.sketch),
   'dribbble': (hue: Color(0xFFEA4C89), icon: FontAwesomeIcons.dribbble),
+  'behance': (hue: Color(0xFF1769FF), icon: FontAwesomeIcons.behance),
+  'invision': (hue: Color(0xFFFF3366), icon: FontAwesomeIcons.invision),
+  'webflow': (hue: Color(0xFF4353FF), icon: FontAwesomeIcons.webflow),
   'prototyping': (hue: Color(0xFFA78BFA), icon: null),
   'interaction design': (hue: Color(0xFFF472B6), icon: null),
   'motion': (hue: Color(0xFFFB923C), icon: null),
@@ -79,8 +114,9 @@ SkillMark skillMarkFor(String name) {
   return (hue: _fallbackHues[h % _fallbackHues.length], icon: null);
 }
 
-/// A skill as a tinted chip: a wash of its hue, a faint rim of it, its mark
-/// when it has one, and the name in a lifted shade of the hue.
+/// A skill as a plain monochrome chip: its universal logo beside the name
+/// when it has one, the name alone when it does not. No hue — the profile is
+/// black and white.
 class SkillColorChip extends StatelessWidget {
   const SkillColorChip({super.key, required this.label});
 
@@ -88,37 +124,28 @@ class SkillColorChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mark = skillMarkFor(label);
-    final ink = Color.lerp(mark.hue, Colors.white, 0.25)!;
+    final colors = Theme.of(context).colorScheme;
+    final icon = skillMarkFor(label).icon;
     return Container(
       constraints: const BoxConstraints(minHeight: 30),
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
       decoration: BoxDecoration(
-        color: mark.hue.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: mark.hue.withValues(alpha: 0.32)),
+        border: Border.all(color: colors.outlineVariant),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (mark.icon != null) ...[
-            FaIcon(mark.icon, size: 12, color: mark.hue),
+          if (icon != null) ...[
+            FaIcon(icon, size: 12, color: colors.onSurface),
             const SizedBox(width: 6),
-          ] else ...[
-            Container(
-              width: 6,
-              height: 6,
-              decoration:
-                  BoxDecoration(color: mark.hue, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 7),
           ],
           Text(
             label,
             style: TextStyle(
               fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              color: ink,
+              fontWeight: FontWeight.w500,
+              color: colors.onSurface,
             ),
           ),
         ],
