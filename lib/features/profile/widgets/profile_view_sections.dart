@@ -332,7 +332,12 @@ class _LinkChips extends StatelessWidget {
   }
 }
 
-/// One social / portfolio link as just its logo, on a round glass disc.
+/// The links section's heading glyph: indigo, the links' one accent.
+const Color kLinksHeaderIndigo = Color(0xFF4E46DC);
+
+/// One social / portfolio link as just its logo, in the platform's own brand
+/// colour, on a round glass disc. Near-black marks (GitHub, X, Medium…) take
+/// the theme's ink instead, so they don't vanish into the dark disc.
 class SocialLinkIcon extends StatelessWidget {
   const SocialLinkIcon({super.key, required this.link, this.onTap});
 
@@ -344,7 +349,10 @@ class SocialLinkIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = ProfileSurfaceTokens.of(context);
-    final ink = context.colorScheme.onSurface;
+    final brand = link.color;
+    final ink = brand.computeLuminance() < kMonochromeBrandLuminance
+        ? context.colorScheme.onSurface
+        : brand;
     final radius = BorderRadius.circular(size / 2);
     final where = link.domain.isEmpty ? link.href : link.domain;
     return Tooltip(
@@ -397,6 +405,7 @@ class SocialLinksCard extends StatelessWidget {
         children: [
           SectionHeader(
             icon: Icons.link,
+            iconColor: kLinksHeaderIndigo,
             title: 'Social Links',
             showEdit: true,
             onEdit: onEdit,
@@ -438,7 +447,11 @@ class ContactPillsRow extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeader(icon: Icons.link, title: 'Links'),
+          const SectionHeader(
+            icon: Icons.link,
+            iconColor: kLinksHeaderIndigo,
+            title: 'Links',
+          ),
           const SizedBox(height: 10),
           _LinkChips(links: chips),
         ],

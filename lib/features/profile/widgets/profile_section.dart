@@ -379,6 +379,9 @@ class _RenderCollapseBox extends RenderProxyBox {
 class SectionHeader extends StatelessWidget {
   /// The leading glyph; null for a title-only heading.
   final IconData? icon;
+
+  /// The glyph's colour; null keeps the secondary ink.
+  final Color? iconColor;
   final String title;
   final bool showAdd;
   final bool showEdit;
@@ -392,6 +395,7 @@ class SectionHeader extends StatelessWidget {
   const SectionHeader({
     super.key,
     this.icon,
+    this.iconColor,
     required this.title,
     this.showAdd = false,
     this.showEdit = false,
@@ -407,7 +411,8 @@ class SectionHeader extends StatelessWidget {
       children: [
         if (icon != null) ...[
           ExcludeSemantics(
-            child: Icon(icon, size: 16, color: colors.onSurfaceVariant),
+            child: Icon(icon,
+                size: 16, color: iconColor ?? colors.onSurfaceVariant),
           ),
           const SizedBox(width: 10),
         ],

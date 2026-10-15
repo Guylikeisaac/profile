@@ -964,6 +964,9 @@ class _Avatar extends StatelessWidget {
 
 // ── Status (inline vs filled pills) ──────────────────────────────────────────
 
+/// The "Open to Work" dot: a live green, the one status colour in the hero.
+const Color kOpenToWorkGreen = Color(0xFF22C55E);
+
 class _Status extends StatelessWidget {
   const _Status({
     required this.mode,
@@ -986,7 +989,7 @@ class _Status extends StatelessWidget {
     if (!openToWork && place.isEmpty) return const SizedBox.shrink();
 
     // One chip language in every mode: "Open to Work" is a black chip with a
-    // bright edge and a pulsing dot — the signal a recruiter scans for — and
+    // bright edge and a pulsing green dot — the signal a recruiter scans for — and
     // the location is a quieter outlined chip beside it.
     return Wrap(
       spacing: 8,
@@ -994,10 +997,10 @@ class _Status extends StatelessWidget {
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         if (openToWork)
-          // Black, with a crisp white edge and a live white pulse.
+          // Black, with a crisp white edge and a live green pulse.
           _StatusChip(
             label: 'Open to Work',
-            leading: ProfilePulseDot(color: colors.onSurface),
+            leading: const ProfilePulseDot(color: kOpenToWorkGreen),
             fill: colors.surface,
             ink: colors.onSurface,
             edge: colors.onSurface.withValues(alpha: 0.85),
