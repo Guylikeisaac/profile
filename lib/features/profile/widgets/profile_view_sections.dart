@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 
@@ -38,6 +37,7 @@ import 'profile_misc_widgets.dart';
 import 'profile_section.dart';
 import 'profile_sheet_kit.dart' show ProfileSheetAction, showProfileActionSheet;
 import 'profile_surface.dart';
+import 'skill_marks.dart';
 import '../../../core/extensions/context_extensions.dart';
 
 // ── Social links ─────────────────────────────────────────────────────────────
@@ -1859,63 +1859,53 @@ class ProjectViewTile extends StatelessWidget {
                         ),
                       ),
                     ],
-                    if (links.isNotEmpty ||
-                        caseStudy != null ||
-                        project.techStack.isNotEmpty) ...[
-                      const SizedBox(height: 14),
+                    // The stack on its own line, every tile the same size.
+                    if (project.techStack.isNotEmpty) ...[
+                      const SizedBox(height: 12),
                       Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // One line, always: a narrow card scales the
-                          // tiles down rather than wrapping them.
-                          Expanded(
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  for (final (i, t)
-                                      in project.techStack.take(4).indexed) ...[
-                                    if (i > 0) const SizedBox(width: 5),
-                                    _TechTile(name: t),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            alignment: WrapAlignment.end,
-                            children: [
-                              if (caseStudy != null)
-                                _ProjectLinkButton(
-                                  glyph: Icon(Icons.article_outlined,
-                                      size: 16, color: colors.onSurface),
-                                  label: 'Case study',
-                                  onTap: () =>
-                                      openProfileLink(context, caseStudy),
-                                ),
-                              for (final l in source)
-                                _ProjectLinkButton(
-                                  glyph: workLinkGlyph(l.kind,
-                                      size: 15, color: colors.onSurface),
-                                  label: l.label,
-                                  onTap: () => openProfileLink(context, l),
-                                ),
-                              if (live.isNotEmpty)
-                                _ProjectLinkButton(
-                                  glyph: Icon(Icons.arrow_outward_rounded,
-                                      size: 16, color: colors.onSurface),
-                                  label: 'Live',
-                                  onTap: () =>
-                                      openProfileLink(context, live.first),
-                                ),
-                            ],
-                          ),
+                          for (final (i, t)
+                              in project.techStack.take(6).indexed) ...[
+                            if (i > 0) const SizedBox(width: 6),
+                            SkillMarkTile(name: t),
+                          ],
                         ],
+                      ),
+                    ],
+                    if (links.isNotEmpty || caseStudy != null) ...[
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.end,
+                          children: [
+                            if (caseStudy != null)
+                              _ProjectLinkButton(
+                                glyph: Icon(Icons.article_outlined,
+                                    size: 16, color: colors.onSurface),
+                                label: 'Case study',
+                                onTap: () =>
+                                    openProfileLink(context, caseStudy),
+                              ),
+                            for (final l in source)
+                              _ProjectLinkButton(
+                                glyph: workLinkGlyph(l.kind,
+                                    size: 15, color: colors.onSurface),
+                                label: l.label,
+                                onTap: () => openProfileLink(context, l),
+                              ),
+                            if (live.isNotEmpty)
+                              _ProjectLinkButton(
+                                glyph: Icon(Icons.arrow_outward_rounded,
+                                    size: 16, color: colors.onSurface),
+                                label: 'Live',
+                                onTap: () =>
+                                    openProfileLink(context, live.first),
+                              ),
+                          ],
+                        ),
                       ),
                     ],
                   ],
@@ -2026,76 +2016,6 @@ class _ProjectLinkButton extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// One technology a project uses, as a small tinted tile with its mark (or
-/// its initials when there is no mark for it). The name is the tooltip.
-class _TechTile extends StatelessWidget {
-  const _TechTile({required this.name});
-
-  final String name;
-
-  static const Map<String, (FaIconData, Color)> _marks = {
-    'react': (FontAwesomeIcons.react, Color(0xFF61DAFB)),
-    'node.js': (FontAwesomeIcons.nodeJs, Color(0xFF8CC84B)),
-    'node': (FontAwesomeIcons.nodeJs, Color(0xFF8CC84B)),
-    'javascript': (FontAwesomeIcons.js, Color(0xFFF7DF1E)),
-    'python': (FontAwesomeIcons.python, Color(0xFF4B8BBE)),
-    'go': (FontAwesomeIcons.golang, Color(0xFF00ADD8)),
-    'docker': (FontAwesomeIcons.docker, Color(0xFF2496ED)),
-    'aws': (FontAwesomeIcons.aws, Color(0xFFFF9900)),
-    'figma': (FontAwesomeIcons.figma, Color(0xFFF24E1E)),
-    'android': (FontAwesomeIcons.android, Color(0xFF3DDC84)),
-    'apple': (FontAwesomeIcons.apple, Color(0xFFE6E6E6)),
-    'ios': (FontAwesomeIcons.apple, Color(0xFFE6E6E6)),
-    'html': (FontAwesomeIcons.html5, Color(0xFFE34F26)),
-    'css': (FontAwesomeIcons.css3Alt, Color(0xFF2965F1)),
-    'git': (FontAwesomeIcons.gitAlt, Color(0xFFF05032)),
-    'angular': (FontAwesomeIcons.angular, Color(0xFFDD0031)),
-    'vue': (FontAwesomeIcons.vuejs, Color(0xFF42B883)),
-    'java': (FontAwesomeIcons.java, Color(0xFFED8B00)),
-    'rust': (FontAwesomeIcons.rust, Color(0xFFDEA584)),
-    'flutter': (FontAwesomeIcons.mobileScreen, Color(0xFF54C5F8)),
-    'typescript': (FontAwesomeIcons.code, Color(0xFF3178C6)),
-    'storybook': (FontAwesomeIcons.bookOpen, Color(0xFFFF4785)),
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colorScheme;
-    final mark = _marks[name.trim().toLowerCase()];
-    final hue = mark?.$2 ?? colors.onSurface;
-    final initials = name.trim().isEmpty
-        ? '?'
-        : name.trim().substring(0, math.min(2, name.trim().length));
-    return Tooltip(
-      message: name,
-      child: Semantics(
-        label: name,
-        excludeSemantics: true,
-        child: Container(
-          width: 24,
-          height: 24,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: hue.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(7),
-            border: Border.all(color: hue.withValues(alpha: 0.35)),
-          ),
-          child: mark != null
-              ? FaIcon(mark.$1, size: 12, color: hue)
-              : Text(
-                  initials,
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                    color: hue,
-                  ),
-                ),
         ),
       ),
     );

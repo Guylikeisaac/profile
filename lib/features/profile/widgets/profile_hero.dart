@@ -1612,9 +1612,10 @@ class LiquidGlassCircle extends StatelessWidget {
 
 // ── Stats ────────────────────────────────────────────────────────────────────
 
-/// The hero's numbers as one outlined strip: big tabular values over small
-/// tracked captions, hairlines between columns. A tappable stat (the owner's
-/// Connections) gets a chevron and lights up while pressed.
+/// The hero's numbers as a row of separate tiles, each with its own colour:
+/// a glyph in a tinted disc, the value counting up, the caption in full, and
+/// a glow of the tile's hue rising from one corner. A tappable stat (the
+/// owner's Connections) gets an arrow and lights up while pressed.
 class _StatsRow extends StatelessWidget {
   const _StatsRow({required this.stats, this.onConnectionsTap});
 
@@ -1623,7 +1624,6 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = ProfileSurfaceTokens.of(context);
     if (stats.isEmpty) return const SizedBox.shrink();
     final compact = stats.length >= 4;
     final children = <Widget>[];
@@ -1631,120 +1631,164 @@ class _StatsRow extends StatelessWidget {
       final stat = stats[i];
       final tappable =
           onConnectionsTap != null && stat.caption == 'Connections';
+      if (i > 0) children.add(SizedBox(width: compact ? 6 : 8));
       children.add(Expanded(
-        child: tappable
-            ? _TappableStat(
-                stat: stat,
-                compact: compact,
-                onTap: onConnectionsTap!,
-              )
-            : _StatColumn(stat: stat, compact: compact),
+        child: _StatTile(
+          stat: stat,
+          compact: compact,
+          onTap: tappable ? onConnectionsTap : null,
+        ),
       ));
-      if (i < stats.length - 1) {
-        children.add(SizedBox(width: 1, child: ColoredBox(color: t.hairline)));
-      }
     }
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: t.hairlineStrong),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: children,
-        ),
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
       ),
     );
   }
 }
 
-class _TappableStat extends StatelessWidget {
-  const _TappableStat({
-    required this.stat,
-    required this.compact,
-    required this.onTap,
-  });
-
-  final ProfileStat stat;
-  final bool compact;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ink = context.colorScheme.onSurface;
-    return Semantics(
-      button: true,
-      label: '${stat.value} ${stat.caption}',
-      excludeSemantics: true,
-      child: GlassPressable(
-        onPressed: onTap,
-        borderRadius: BorderRadius.zero,
-        pressedScale: 1,
-        builder: (context, s) => ColoredBox(
-          color: ink.withValues(alpha: 0.08 * math.max(s.press, s.hover * 0.6)),
-          child: _StatColumn(stat: stat, compact: compact, showChevron: true),
-        ),
-      ),
-    );
+/// How a stat is dressed: its glyph and hue, from its caption.
+({IconData icon, Color hue, String label}) _statLook(String caption) {
+  switch (caption.toLowerCase()) {
+    case 'yrs exp':
+    case 'years exp':
+      return (
+        icon: Icons.workspace_premium_outlined,
+        hue: const Color(0xFFFBBF24),
+        label: 'Years exp.',
+      );
+    case 'connections':
+    case 'network':
+      return (
+        icon: Icons.people_alt_outlined,
+        hue: const Color(0xFF60A5FA),
+        label: caption,
+      );
+    case 'profile views':
+      return (
+        icon: Icons.visibility_outlined,
+        hue: const Color(0xFFF472B6),
+        label: 'Profile views',
+      );
+    case 'projects':
+      return (
+        icon: Icons.rocket_launch_outlined,
+        hue: const Color(0xFFA78BFA),
+        label: caption,
+      );
+    case 'skills':
+      return (
+        icon: Icons.bolt_outlined,
+        hue: const Color(0xFF34D399),
+        label: caption,
+      );
+    default:
+      return (
+        icon: Icons.insights_outlined,
+        hue: const Color(0xFF2DD4BF),
+        label: caption,
+      );
   }
 }
 
-class _StatColumn extends StatelessWidget {
-  const _StatColumn({
-    required this.stat,
-    required this.compact,
-    this.showChevron = false,
-  });
+class _StatTile extends StatelessWidget {
+  const _StatTile({required this.stat, required this.compact, this.onTap});
 
   final ProfileStat stat;
   final bool compact;
-  final bool showChevron;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colorScheme;
-    return Padding(
-      padding: EdgeInsets.symmetric(
-          horizontal: compact ? 8 : 12, vertical: compact ? 10 : 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
+    final look = _statLook(stat.caption);
+    final hue = look.hue;
+    final radius = BorderRadius.circular(16);
+
+    Widget face(double lit) => Container(
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            border: Border.all(color: hue.withValues(alpha: 0.22 + 0.2 * lit)),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                hue.withValues(alpha: 0.16 + 0.08 * lit),
+                hue.withValues(alpha: 0.02),
+              ],
+            ),
+          ),
+          padding: EdgeInsets.fromLTRB(compact ? 9 : 12, compact ? 10 : 12,
+              compact ? 9 : 12, compact ? 10 : 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Flexible(
-                child: ProfileCountUp(
-                  value: stat.value,
+              Row(
+                children: [
+                  Container(
+                    width: compact ? 24 : 28,
+                    height: compact ? 24 : 28,
+                    decoration: BoxDecoration(
+                      color: hue.withValues(alpha: 0.18),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(look.icon, size: compact ? 13 : 15, color: hue),
+                  ),
+                  const Spacer(),
+                  if (onTap != null)
+                    Icon(Icons.arrow_outward_rounded,
+                        size: 14, color: hue.withValues(alpha: 0.9)),
+                ],
+              ),
+              SizedBox(height: compact ? 8 : 10),
+              ProfileCountUp(
+                value: stat.value,
+                style: TextStyle(
+                  color: colors.onSurface,
+                  fontSize: compact ? 18 : 22,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.8,
+                  height: 1.05,
+                  fontFeatures: AppTypography.tabularFigures,
+                ),
+              ),
+              const SizedBox(height: 3),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  look.label,
+                  maxLines: 1,
                   style: TextStyle(
-                    color: colors.onSurface,
-                    fontSize: compact ? 16 : 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.6,
-                    height: 1.1,
-                    fontFeatures: AppTypography.tabularFigures,
+                    color: colors.onSurfaceVariant,
+                    fontSize: compact ? 10.5 : 11.5,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              if (showChevron)
-                Icon(Icons.arrow_outward_rounded,
-                    size: 12, color: colors.onSurfaceVariant),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            stat.caption.toUpperCase(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: colors.onSurfaceVariant,
-              fontSize: 9,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.7,
-            ),
-          ),
-        ],
+        );
+
+    if (onTap == null) {
+      return Semantics(
+        label: '${stat.value} ${look.label}',
+        excludeSemantics: true,
+        child: face(0),
+      );
+    }
+    return Semantics(
+      button: true,
+      label: '${stat.value} ${look.label}',
+      excludeSemantics: true,
+      child: GlassPressable(
+        onPressed: onTap,
+        borderRadius: radius,
+        pressedScale: 0.97,
+        builder: (context, s) => face(math.max(s.press, s.hover * 0.6)),
       ),
     );
   }

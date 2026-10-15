@@ -5,7 +5,7 @@ import '../data/models/user_profile.dart';
 import '../../../core/extensions/context_extensions.dart';
 import '../../../core/theme/profile_surface_tokens.dart';
 import '../../../core/theme/theme_context_ext.dart';
-import '../../../shared/widgets/app_chip.dart';
+import 'skill_marks.dart';
 
 class SkillCategoryBlock extends StatelessWidget {
   final String title;
@@ -31,9 +31,9 @@ class SkillCategoryBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colorScheme;
     final titleInk = accent ?? colors.onSurfaceVariant;
-    // Skills are labels, not controls: the app's meta chip — tone, no edge,
-    // secondary ink — so a card of them reads as information rather than as
-    // a row of buttons. A saved category colour lives on the heading only.
+    // Each skill carries its own colour (its brand hue, or a stable one for
+    // a practice) — see [skillMarkFor]. A saved category colour lives on the
+    // heading only.
     return Padding(
       padding: const EdgeInsets.only(top: 14),
       child: Column(
@@ -53,7 +53,7 @@ class SkillCategoryBlock extends StatelessWidget {
             spacing: 6,
             runSpacing: 6,
             children: [
-              for (final value in values) AppChip(label: value),
+              for (final value in values) SkillColorChip(label: value),
             ],
           ),
         ],
