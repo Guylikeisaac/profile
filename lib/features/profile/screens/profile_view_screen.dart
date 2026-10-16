@@ -43,7 +43,8 @@ import '../widgets/profile_hero.dart';
 import '../widgets/profile_member_menu.dart';
 import '../widgets/profile_mono_theme.dart';
 import '../widgets/profile_motion.dart';
-import '../widgets/profile_section.dart' show ProfileFoldingSections;
+import '../widgets/profile_section.dart'
+    show ProfileFoldingSections, ProfileSectionCard;
 import '../widgets/profile_sheet_kit.dart'
     show ProfileSheetAction, showProfileActionSheet;
 import '../widgets/references_section.dart';
@@ -414,6 +415,28 @@ class _ProfileViewScreenState extends ConsumerState<_ProfileView> {
                         delay: const Duration(milliseconds: 120),
                         child: section),
                   ),
+                // A visitor reaches the end of the page with the next step
+                // in hand, instead of scrolling back up to the hero.
+                if (_isOtherUser)
+                  _KeepAlive(
+                    child: ProfileReveal(
+                      delay: const Duration(milliseconds: 120),
+                      child: _VisitorClosingCard(
+                        name: data.name,
+                        avatarUrl: data.avatarUrl,
+                        openToWork: data.openToWork,
+                        location: data.location,
+                        connectState: heroConnectState,
+                        onConnect: onConnect,
+                        onMessage: () => openDirectChat(
+                          context,
+                          profile.id,
+                          personName: profile.name,
+                        ),
+                        onShare: () => _share(context),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -424,6 +447,17 @@ class _ProfileViewScreenState extends ConsumerState<_ProfileView> {
           avatarUrl: data.avatarUrl,
           onBack: () => _back(context),
           onShare: () => _share(context),
+          // Visitors keep Connect within reach once the hero scrolls away.
+          action: _isOtherUser &&
+                  (heroConnectState == HeroConnectState.connect ||
+                      heroConnectState == HeroConnectState.incoming)
+              ? _StickyConnect(
+                  label: heroConnectState == HeroConnectState.incoming
+                      ? 'Accept'
+                      : 'Connect',
+                  onTap: onConnect,
+                )
+              : null,
         ),
       ],
     );
@@ -1159,6 +1193,7 @@ class _StickyBar extends StatelessWidget {
     required this.avatarUrl,
     required this.onBack,
     required this.onShare,
+    this.action,
   });
 
   final ValueListenable<double> offset;
@@ -1166,6 +1201,9 @@ class _StickyBar extends StatelessWidget {
   final String avatarUrl;
   final VoidCallback onBack;
   final VoidCallback onShare;
+
+  /// A compact call to action before Share (the visitor's Connect).
+  final Widget? action;
 
   /// Scroll distance over which the bar arrives.
   static const double _start = 220;
@@ -1241,6 +1279,10 @@ class _StickyBar extends StatelessWidget {
                           ),
                         ),
                       ),
+                      if (action != null) ...[
+                        const SizedBox(width: 8),
+                        action!,
+                      ],
                       IconButton(
                         onPressed: onShare,
                         icon: const Icon(Icons.ios_share, size: 20),
@@ -1259,6 +1301,223 @@ class _StickyBar extends StatelessWidget {
 
   static Widget _maybeFade(double t, Widget child) =>
       t >= 1 ? child : Opacity(opacity: t, child: child);
+}
+
+/// The sticky bar's small white "Connect" pill.
+class _StickyConnect extends StatelessWidget {
+  const _StickyConnect({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colorScheme;
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          height: 32,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: ShapeDecoration(
+            color: colors.onSurface,
+            shape: const StadiumBorder(),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.person_add_alt_1_rounded,
+                  size: 15, color: colors.surface),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: colors.surface,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The last card a visitor sees: who this is, whether they are open to work,
+/// and the next step — Connect (or Message, once connected) and Share.
+class _VisitorClosingCard extends StatelessWidget {
+  const _VisitorClosingCard({
+    required this.name,
+    required this.avatarUrl,
+    required this.openToWork,
+    required this.location,
+    required this.connectState,
+    required this.onConnect,
+    required this.onMessage,
+    required this.onShare,
+  });
+
+  final String name;
+  final String avatarUrl;
+  final bool openToWork;
+  final String location;
+  final HeroConnectState connectState;
+  final VoidCallback? onConnect;
+  final VoidCallback onMessage;
+  final VoidCallback onShare;
+
+  String get _firstName {
+    final first = name.trim().split(RegExp(r'\s+')).first;
+    return first.isEmpty ? 'them' : first;
+  }
+
+  String get _subtitle {
+    final place = location.trim();
+    if (openToWork) {
+      return place.isEmpty
+          ? 'Open to new opportunities'
+          : 'Open to new opportunities · $place';
+    }
+    return place.isEmpty ? "Let's stay in touch" : 'Based in $place';
+  }
+
+  Widget? _primary() {
+    switch (connectState) {
+      case HeroConnectState.connect:
+        return HeroPillButton(
+          label: 'Connect',
+          solid: true,
+          icon: Icons.person_add_alt_1_rounded,
+          onTap: onConnect,
+        );
+      case HeroConnectState.incoming:
+        return HeroPillButton(
+          label: 'Accept',
+          solid: true,
+          icon: Icons.how_to_reg_rounded,
+          onTap: onConnect,
+        );
+      case HeroConnectState.requested:
+        return HeroPillButton(
+          label: 'Requested',
+          solid: false,
+          pending: true,
+          icon: Icons.schedule,
+          onTap: onConnect,
+          semanticLabel: 'Connection request sent. Tap to withdraw request.',
+        );
+      case HeroConnectState.connected:
+        return HeroPillButton(
+          label: 'Message',
+          solid: true,
+          icon: Icons.chat_bubble_outline_rounded,
+          onTap: onMessage,
+        );
+      case HeroConnectState.busy:
+        return const HeroPillButton(
+          label: 'Working…',
+          solid: true,
+          busy: true,
+          onTap: null,
+        );
+      case HeroConnectState.hidden:
+        return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colorScheme;
+    final primary = _primary();
+    final share = HeroPillButton(
+      label: 'Share profile',
+      solid: false,
+      icon: Icons.ios_share,
+      onTap: onShare,
+    );
+    return ProfileSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: colors.onSurface,
+                backgroundImage:
+                    cachedImageProvider(sanitizeAvatarUrl(avatarUrl)),
+                child: avatarUrl.isEmpty
+                    ? Text(
+                        name.isEmpty ? '?' : name[0].toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: colors.surface,
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Work with $_firstName',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
+                        color: colors.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        if (openToWork) ...[
+                          const ProfilePulseDot(color: kOpenToWorkGreen),
+                          const SizedBox(width: 6),
+                        ],
+                        Flexible(
+                          child: Text(
+                            _subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: colors.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              if (primary != null) ...[
+                Expanded(child: primary),
+                const SizedBox(width: 10),
+              ],
+              Expanded(child: share),
+            ],
+          ),
+          const SizedBox(height: 4),
+        ],
+      ),
+    );
+  }
 }
 
 /// Keeps a list row alive once built, so scrolling away and back does not

@@ -1162,6 +1162,7 @@ class _HeroActions extends StatelessWidget {
         return HeroPillButton(
           label: 'Message',
           solid: false,
+          icon: Icons.chat_bubble_outline_rounded,
           onTap: onMessage,
         );
       case MessageAvailability.needsConnection:
@@ -1169,6 +1170,7 @@ class _HeroActions extends StatelessWidget {
           label: 'Message',
           solid: false,
           dimmed: true,
+          icon: Icons.chat_bubble_outline_rounded,
           semanticHint: messageBlockedReason,
           // Still tappable on purpose: the tap is the only place the reason
           // can be delivered on a phone, where there is no hover.
@@ -1192,7 +1194,12 @@ class _HeroActions extends StatelessWidget {
       case HeroConnectState.hidden:
         return null;
       case HeroConnectState.connect:
-        return HeroPillButton(label: 'Connect', solid: true, onTap: onConnect);
+        return HeroPillButton(
+          label: 'Connect',
+          solid: true,
+          icon: Icons.person_add_alt_1_rounded,
+          onTap: onConnect,
+        );
       case HeroConnectState.requested:
         return HeroPillButton(
           label: 'Requested',
@@ -1206,7 +1213,12 @@ class _HeroActions extends StatelessWidget {
           semanticLabel: 'Connection request sent. Tap to withdraw request.',
         );
       case HeroConnectState.incoming:
-        return HeroPillButton(label: 'Accept', solid: true, onTap: onConnect);
+        return HeroPillButton(
+          label: 'Accept',
+          solid: true,
+          icon: Icons.how_to_reg_rounded,
+          onTap: onConnect,
+        );
       case HeroConnectState.connected:
         // A settled state, not an action: no tap, no pane.
         return const HeroPillButton(
@@ -1359,6 +1371,19 @@ class HeroPillButton extends StatelessWidget {
   Widget _build(BuildContext context, {required bool showGlyph}) {
     final glyph = showGlyph ? icon : null;
     if (settled) return _SettledPill(label: label, icon: glyph);
+    if (dimmed) {
+      final ghost = _GhostPill(label: label, icon: glyph, onTap: onTap);
+      final announcement = _announcement;
+      if (announcement == null) return ghost;
+      return Semantics(
+        button: true,
+        enabled: false,
+        label: announcement,
+        onTap: onTap,
+        excludeSemantics: true,
+        child: ghost,
+      );
+    }
 
     final button = AppButton(
       label: label,
@@ -1368,7 +1393,7 @@ class HeroPillButton extends StatelessWidget {
       leading: glyph,
       size: AppButtonSize.compact,
     );
-    final shown = dimmed ? Opacity(opacity: 0.5, child: button) : button;
+    final shown = button;
 
     final announcement = _announcement;
     if (announcement == null) return shown;
@@ -1379,6 +1404,61 @@ class HeroPillButton extends StatelessWidget {
       onTap: onTap,
       excludeSemantics: true,
       child: shown,
+    );
+  }
+}
+
+/// "Not yet" (Message before you are connected): an outline with quieter
+/// ink, not a greyed-out slab — it reads as available later rather than
+/// broken. Still tappable, so the tap can explain why.
+class _GhostPill extends StatelessWidget {
+  const _GhostPill({required this.label, this.icon, this.onTap});
+
+  final String label;
+  final IconData? icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = context.colorScheme.onSurface.withValues(alpha: 0.62);
+    return SizedBox(
+      height: AppSpacing.minTapTarget,
+      child: GlassPressable(
+        onPressed: onTap,
+        borderRadius: AppRadii.controlAll,
+        pressedScale: 0.97,
+        builder: (context, s) => Center(
+          child: Container(
+            // The painted height of the compact AppButton beside it.
+            height: 30,
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+            decoration: BoxDecoration(
+              borderRadius: AppRadii.controlAll,
+              border: Border.all(
+                color: context.colorScheme.onSurface.withValues(
+                    alpha: 0.22 + 0.12 * math.max(s.press, s.hover)),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 16, color: ink),
+                  const SizedBox(width: 6),
+                ],
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.labelLarge(ink),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

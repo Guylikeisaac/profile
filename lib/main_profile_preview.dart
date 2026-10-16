@@ -34,7 +34,8 @@ void main() {
         selfConnectionCountProvider.overrideWith((ref) async => 1847),
         myCertificationsProvider
             .overrideWith((ref) async => PreviewData.certifications),
-        myReferencesProvider.overrideWith((ref) async => PreviewData.references),
+        myReferencesProvider
+            .overrideWith((ref) async => PreviewData.references),
         incomingReferenceRequestsProvider.overrideWith((ref) async => []),
         profileResumeProvider.overrideWith((ref) async => PreviewData.resume),
         sprintPendingStatusProvider.overrideWith((ref) async => null),
@@ -47,12 +48,22 @@ void main() {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.dark,
         routerConfig: _router,
-        builder: (context, child) => Stack(
-          children: [
-            child!,
-            const _ViewSwitch(),
-          ],
-        ),
+        // The page leaves room at the bottom for the floating switch, so the
+        // last card is never hidden behind it.
+        builder: (context, child) {
+          final mq = MediaQuery.of(context);
+          return Stack(
+            children: [
+              MediaQuery(
+                data: mq.copyWith(
+                  padding: mq.padding.copyWith(bottom: mq.padding.bottom + 64),
+                ),
+                child: child!,
+              ),
+              const _ViewSwitch(),
+            ],
+          );
+        },
       ),
     ),
   );
@@ -69,8 +80,7 @@ final _router = GoRouter(
     ),
     GoRoute(
       path: '/public',
-      builder: (_, __) =>
-          const ProfileViewScreen.public(userId: _publicHandle),
+      builder: (_, __) => const ProfileViewScreen.public(userId: _publicHandle),
     ),
   ],
 );
@@ -175,7 +185,7 @@ class _PreviewConnections implements ConnectionRepository {
 
   @override
   Future<MutualConnections> getMutuals(String userId) async =>
-      const MutualConnections(count: 12);
+      MutualConnections(count: 12, sample: PreviewData.mutualSample);
 
   @override
   Future<String?> sendConnection(String receiverId) async => 'preview';

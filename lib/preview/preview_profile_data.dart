@@ -1,3 +1,4 @@
+import '../features/network/data/connection_repository.dart';
 import '../features/post/data/models/post_models.dart';
 import '../features/profile/data/models/certification.dart';
 import '../features/profile/data/models/profile_links.dart';
@@ -14,6 +15,19 @@ abstract final class PreviewData {
       'https://images.unsplash.com/photo-$id?w=$w&q=80&auto=format&fit=crop';
 
   static final String avatar = _photo('1507003211169-0a1dd7228f2d', w: 320);
+
+  /// People the visitor and Arjun both know, for the public view.
+  static final List<MutualPerson> mutualSample = [
+    MutualPerson(
+        name: 'Priya Nair',
+        avatarUrl: _photo('1494790108377-be9c29b29330', w: 96)),
+    MutualPerson(
+        name: 'Rohan Das',
+        avatarUrl: _photo('1500648767791-00dcc994a43e', w: 96)),
+    MutualPerson(
+        name: 'Meera Iyer',
+        avatarUrl: _photo('1438761681033-6461ffad8d80', w: 96)),
+  ];
   static final String banner = _photo('1451187580459-43490279c0fa', w: 1400);
 
   static final UserProfile profile = UserProfile(
